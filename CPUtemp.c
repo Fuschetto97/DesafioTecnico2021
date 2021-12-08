@@ -95,10 +95,16 @@ int main(void)
     res = fscanf( fd_file, "%lf", &temp);
     if (res == EOF) {
         fprintf(stderr, "Error: fscanf alcanzo el final del archivo y no hubo matching, errno: %s\n", strerror(errno) );
+        shmdt(buffer);
+        shmctl(shmid, IPC_RMID, NULL);  //Elimino shared memory
+        close(fdp);
         return -1;
     }
     else if (res != 1) {    // Chequeo que haya matchado y asignado la cantidad entradas correspondientes
         fprintf(stderr, "Error: fscanf matcheo y asigno %i entradas, se esperaba 1 \n", res);
+        shmdt(buffer);
+        shmctl(shmid, IPC_RMID, NULL);  //Elimino shared memory
+        close(fdp);
         return -1;
     }
     
@@ -108,6 +114,9 @@ int main(void)
         sb->sem_op = -1;         // Espero a que sea liberado y lo tomo
         if (semop(semid, sb, 1) == -1) {   // semop asigna, libera o espera a que sea liberado 
             perror("semop");
+            shmdt(buffer);
+            shmctl(shmid, IPC_RMID, NULL);  //Elimino shared memory
+            close(fdp);
             exit(1);
         }
 
@@ -117,13 +126,18 @@ int main(void)
         sb->sem_op = 1;          /* Libera el recurso, lo dejo disponible para otro proceso */
         if (semop(semid, sb, 1) == -1) {
             perror("semop");
+            shmdt(buffer);
+            shmctl(shmid, IPC_RMID, NULL);  //Elimino shared memory
+            close(fdp);
             exit(1);
         }
 
         sleep(1);
     }
 
-    
-
+    // Libero recursos
+    shmdt(buffer);
+    shmctl(shmid, IPC_RMID, NULL);  //Elimino shared memory
+    close(fdp);
     return 0;
 }

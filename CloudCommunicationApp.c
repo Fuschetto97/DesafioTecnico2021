@@ -208,6 +208,11 @@ int main(void)
         sleep(1);
     }
 
+    // Libero recursos
+    shmdt(buffer);
+    shmctl(shmid, IPC_RMID, NULL);  //Elimino shared memory
+    close(fdp);
+    semctl(semid, 0, IPC_RMID);  //Elimino semaforo
     close(s);
     return 0;
 }
