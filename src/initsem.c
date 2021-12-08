@@ -1,6 +1,4 @@
-#include "Server.h"
-
-#define MAX_RETRIES 10
+#include "./CloudCommunicationApp.h"
 
 int initsem(key_t key, int nsems) 
 {

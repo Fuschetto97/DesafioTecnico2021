@@ -4,20 +4,7 @@ Creador : Fuschetto Martin
 Metodo de comunicacion: Share Memory: Segmento de memoria que se comparte entre procesos.
 
 */ 
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-
-#define SHM_SIZE 1024   // 1K 
-#define SOCKET_PATH "echo_socket"
-#define SIZE_SENDED 100
+#include "./CloudCommunicationApp.h"
 
 volatile int f_close=0;     // Evita optimizaciones con f_close
 
@@ -34,7 +21,6 @@ int main(void)
     char str[SIZE_SENDED];
 
     // Variables para shr mem
-    int size=0;             // para shm mem
     int shmid=0;           
     char *buffer=NULL;
     key_t shrmem_key;
@@ -58,7 +44,7 @@ int main(void)
         exit(1);
     }
     // Conecto al segmento (id del segmento de memoria)
-    if ((shmid = shmget(key, SHM_SIZE, 0644 | IPC_CREAT)) == -1) {
+    if ((shmid = shmget(shrmem_key, SHM_SIZE, 0644 | IPC_CREAT)) == -1) {
     perror("shmget");
     exit(1);
     }
@@ -138,11 +124,11 @@ int main(void)
     }
     printf("Conectado.\n");
 
-    while( f_close = 1)
+    while( f_close == 1)
     {
         // Espero a que el semaforo sea liberado si es que fue tomado
-        sb->sem_op = -1;         // Espero a que sea liberado y lo tomo
-        if (semop(semid, sb, 1) == -1) {   // semop asigna, libera o espera a que sea liberado 
+        sb.sem_op = -1;         // Espero a que sea liberado y lo tomo
+        if (semop(semid, &sb, 1) == -1) {   // semop asigna, libera o espera a que sea liberado 
             perror("semop");
             shmdt(buffer);
             shmctl(shmid, IPC_RMID, NULL);  //Elimino shared memory
@@ -165,8 +151,8 @@ int main(void)
                 break;
         }
 
-        sb->sem_op = 1;          /* Libera el recurso, lo dejo disponible para otro proceso */
-        if (semop(semid, sb, 1) == -1) {
+        sb.sem_op = 1;          /* Libera el recurso, lo dejo disponible para otro proceso */
+        if (semop(semid, &sb, 1) == -1) {
             perror("semop");
             shmdt(buffer);
             shmctl(shmid, IPC_RMID, NULL);  //Elimino shared memory

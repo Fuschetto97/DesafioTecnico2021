@@ -3,30 +3,19 @@ Funcion : Este proceso actuara como productor, se encargara de conseguir la temp
 
 Creador : Fuschetto Martin
 */ 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
 
-#define SHM_SIZE 200   // 1K 
-#define DIR_CPU_TEMP_SENSOR "/sys/class/hwmon/hwmon0/device/temp1_input"
+#include "./CPUtemp.h"
+
+volatile int f_close=0;     // Evita optimizaciones con f_close
 
 void sigusr1_handler(int s)
 {
     f_close=1;
 }
 
-volatile int f_close=0;     // Evita optimizaciones 
-
 int main(void)
 {
     // Variables para shr mem
-    int size=0;             // para shm mem
     int shmid=0;           
     char *buffer=NULL;
     key_t shrmem_key;
@@ -38,12 +27,13 @@ int main(void)
 
     // Variables lectura de temperatura
     double temp;       // muestra de temperatura
+    int res;
 
     // Variable fd 
-    int fd_file;
+    FILE *fd_file;
 
     // File open
-    if ((fd_file=open(DIR_CPU_TEMP_SENSOR, O_RDONLY)) == -1)
+    if ((fd_file=fopen(DIR_CPU_TEMP_SENSOR, "r")) == NULL)
     {
         perror("open");
         exit(1);
@@ -56,7 +46,7 @@ int main(void)
         exit(1);
     }
     // Conecto al segmento (id del segmento de memoria)
-    if ((shmid = shmget(key, SHM_SIZE, 0644 | IPC_CREAT)) == -1) {
+    if ((shmid = shmget(shrmem_key, SHM_SIZE, 0644 | IPC_CREAT)) == -1) {
     perror("shmget");
     exit(1);
     }
@@ -108,11 +98,11 @@ int main(void)
         return -1;
     }
     
-    while( f_close = 1)
+    while( f_close == 1)
     {
         // Espero a que el semaforo sea liberado si es que fue tomado
-        sb->sem_op = -1;         // Espero a que sea liberado y lo tomo
-        if (semop(semid, sb, 1) == -1) {   // semop asigna, libera o espera a que sea liberado 
+        sb.sem_op = -1;         // Espero a que sea liberado y lo tomo
+        if (semop(semid, &sb, 1) == -1) {   // semop asigna, libera o espera a que sea liberado 
             perror("semop");
             shmdt(buffer);
             shmctl(shmid, IPC_RMID, NULL);  //Elimino shared memory
@@ -123,8 +113,8 @@ int main(void)
         // Procedo a escribir la shr mem
         snprintf(buffer, SHM_SIZE, "La temperatura es = %f", (temp));
 
-        sb->sem_op = 1;          /* Libera el recurso, lo dejo disponible para otro proceso */
-        if (semop(semid, sb, 1) == -1) {
+        sb.sem_op = 1;          /* Libera el recurso, lo dejo disponible para otro proceso */
+        if (semop(semid, &sb, 1) == -1) {
             perror("semop");
             shmdt(buffer);
             shmctl(shmid, IPC_RMID, NULL);  //Elimino shared memory
