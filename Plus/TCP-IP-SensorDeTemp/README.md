@@ -1,0 +1,1 @@
+<img src="./bbb.jpg" alt="Hardware" width="500"/>
