@@ -1,0 +1,4 @@
+backlog  = 5
+process  = 10
+acq_time = 1
+average  = 5

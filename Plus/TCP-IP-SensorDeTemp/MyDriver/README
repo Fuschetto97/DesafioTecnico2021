@@ -1,0 +1,4 @@
+Cross Compilo con make
+Y mando a la bbb con make sendcross
+
+scp  ubuntu@192.168.6.2:/home/ubuntu/Server/sarx.txt /home/martin/Escritorio/RepoTD3/r5054-td3-Fuschetto-Martin/02_cuat/TPO_ClienteServidor/
